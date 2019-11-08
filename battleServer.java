@@ -32,15 +32,19 @@ public class battleServer{
       System.out.println("Waiting on port 6969");
       ServerSocket ss = new ServerSocket(6969);
 
-      for(int i=0; i<2;i++)
-      {
-        Socket connectionSock = ss.accept();
-        players.add(connectionSock);
-        battleCHandler handler = new battleCHandler(connectionSock, players);
-        Thread a = new Thread(handler);
-        a.start();
+      //instead of infintely waiting, we only want two players to be able to connect
+      Socket connectionSock1 = ss.accept();
+      players.add(connectionSock1);
+      battleCHandler handler1 = new battleCHandler(connectionSock1, players);
+      Thread a = new Thread(handler1);
+      a.start();
 
-      }
+      Socket connectionSock2 = ss.accept();
+      players.add(connectionSock2);
+      battleCHandler handler2 = new battleCHandler(connectionSock2, players);
+      Thread b = new Thread(handler2);
+      b.start();
+
       ss.close();
     }
     catch(IOException e)

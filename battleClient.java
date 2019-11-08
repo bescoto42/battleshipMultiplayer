@@ -24,6 +24,7 @@ public class battleClient {
 
         //show data sent by the server
         System.out.println("Let's go ladies.");
+        System.out.println("Type exit to end session.");
         battleCListener l = new battleCListener(cs);
         Thread t = new Thread(l);
         t.start();
@@ -32,6 +33,10 @@ public class battleClient {
         while(true)
         {
           String data = keyboard.nextLine();
+          if(data.charAt(0)=='e')
+          {
+            System.exit(0);
+          }
           sendOut.writeBytes(data + "\n");
 
         }
