@@ -47,7 +47,7 @@ public class battleCHandler implements Runnable {
         }
         else
         {
-          System.out.println("Error.");
+          System.out.println("Exiting.");
           players.remove(cs);
           cs.close();
         }
