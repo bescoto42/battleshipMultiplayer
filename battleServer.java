@@ -1,8 +1,8 @@
 /**
-handles connections from clients
-- uses client handler to recieve messages from the client
-- uses threads to run clients
-- to test start server first then run the clients
+server class connects two players and then launches threads with game class
+game class will handle all the gameplay
+game class recieves the player's input and then outputs it to both players
+currently, the biggest issue is that users can go more than once however that should be fixed when gameplay is implemented
 **/
 
 import java.io.BufferedReader;
@@ -13,15 +13,14 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import java.util.ArrayList;
-
 public class battleServer{
-  private ArrayList<Socket> players;
+  private Socket sock1 = null;
+  private Socket sock2 = null;
 
   //constructor
   public battleServer()
   {
-    players = new ArrayList<Socket>();
+
   }
 
   private void connectPlayers()
@@ -32,19 +31,20 @@ public class battleServer{
       System.out.println("Waiting on port 6969");
       ServerSocket ss = new ServerSocket(6969);
 
-      //instead of infintely waiting, we only want two players to be able to connect
-      Socket connectionSock1 = ss.accept();
-      players.add(connectionSock1);
-      battleCHandler handler1 = new battleCHandler(connectionSock1, players);
+      //allow two players to connect
+      sock1 = ss.accept();
+      sock2 = ss.accept();
+
+      //game class takes user's socket, enemy's socket, and designation as input
+      Game handler1 = new Game(sock1, sock2,'1');
       Thread a = new Thread(handler1);
       a.start();
 
-      Socket connectionSock2 = ss.accept();
-      players.add(connectionSock2);
-      battleCHandler handler2 = new battleCHandler(connectionSock2, players);
+      Game handler2 = new Game(sock2, sock1,'2');
       Thread b = new Thread(handler2);
       b.start();
 
+      //once threads are done, close the connection
       ss.close();
     }
     catch(IOException e)
@@ -56,59 +56,88 @@ public class battleServer{
 
   public static void main(String[] args)
   {
+    //all main does is launch the server
     battleServer k = new battleServer();
     k.connectPlayers();
   }
 
 }
 
-class battleCHandler implements Runnable {
-  private Socket cs = null;
-  private ArrayList<Socket> players;
+class Game implements Runnable {
+  private Socket self = null;
+  private Socket enemy = null;
+  private char user;
+  private char nemesis;
 
-  battleCHandler(Socket s, ArrayList<Socket> p)
+  Game(Socket s, Socket e, char w)
   {
-    players = p;
-    cs = s;
+    self = s;
+    enemy = e;
+    user = w;
+
+    if(user=='1')
+    {
+      nemesis='2';
+    }
+    else if(user=='2')
+    {
+      nemesis='1';
+    }
+    else
+    {
+      System.out.println("Error!");
+    }
   }
 
   public void run()
   {
     try
     {
-      System.out.println("Player has connected.");
-      BufferedReader clientInput = new BufferedReader(new InputStreamReader(cs.getInputStream()));
-      String input;
+      System.out.println("Player " + user + " has connected.");
+
+      //get the input from the user
+      BufferedReader myInput = new BufferedReader(new InputStreamReader(self.getInputStream()));
+      //send input to enemy
+      DataOutputStream enemyOutput = new DataOutputStream(enemy.getOutputStream());
+      //send input back to the user
+      DataOutputStream myOutput = new DataOutputStream(self.getOutputStream());
+      //user's input
+      String x;
+
+      //welcome message
+      myOutput.writeBytes("Welcome to Battleship, player " + user + ".\nType exit to end session.\n");
+
       while(true)
       {
-        System.out.println("--");
-        input = clientInput.readLine();
-
-        if(input != null)
+        x = myInput.readLine();
+        if(x != null)
         {
-          System.out.println("Shooting " + input);
-          for (Socket temp : players)
+          if(x.equals("0"))
           {
-            if (temp != cs)
-            {
-              DataOutputStream send =  new DataOutputStream(temp.getOutputStream());
-              send.writeBytes(input + "\n");
-            }
+            enemy.close();
+            self.close();
+            break;
           }
+          //send the same message to both players
+          myOutput.writeBytes(user + ": " + x + "\n" + nemesis + "'s turn.\n");
+          enemyOutput.writeBytes(user + ": " + x + "\n" + nemesis + "'s turn.\n");
+
         }
         else
         {
           System.out.println("Exiting.");
-          players.remove(cs);
-          cs.close();
         }
       }
     }
     catch(Exception e)
     {
-      players.remove(cs);
+      //once one user disconnects, server closes, disconnecting the other player
+      System.out.println("Player " + user + " disconnected.");
+      System.exit(0);
+
     }
   }
+
 
 
 }

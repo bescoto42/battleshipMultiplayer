@@ -1,3 +1,4 @@
+//https://cs.lmu.edu/~ray/notes/javanetexamples/
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,7 +7,7 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 import java.util.Scanner;
-import java.util.ArrayList;
+
 
 public class battleClient {
 
@@ -16,24 +17,28 @@ public class battleClient {
         String hostname = "localhost";
         int port = 6969;
 
-        System.out.println("Starting game.");
+        System.out.println("\n*--*\nStarting game.");
         Socket cs = new Socket(hostname, port);
 
+        //used to send data from keyboard to server
         DataOutputStream sendOut = new DataOutputStream(cs.getOutputStream());
 
-        //show data sent by the server
         System.out.println("Let's go ladies.");
-        System.out.println("Type exit to end session.");
-        battleCListener l = new battleCListener(cs);
+
+        Listener l = new Listener(cs);
         Thread t = new Thread(l);
         t.start();
+        String data;
 
         Scanner keyboard = new Scanner(System.in);
+        //get input from user and send it out
         while(true)
         {
-          String data = keyboard.nextLine();
+          data = keyboard.nextLine();
+          //exit condition
           if(data.charAt(0)=='e')
           {
+            sendOut.writeBytes("0");
             System.exit(0);
           }
           sendOut.writeBytes(data + "\n");
@@ -47,10 +52,10 @@ public class battleClient {
     }
 }
 
-class battleCListener implements Runnable {
+class Listener implements Runnable {
   private Socket cs = null;
 
-  battleCListener(Socket q)
+  Listener(Socket q)
   {
     cs = q;
   }
@@ -66,7 +71,8 @@ class battleCListener implements Runnable {
         String serverText = fromServer.readLine();
         if (fromServer != null)
         {
-          System.out.println("Enemy shot: " + serverText);
+          System.out.println(serverText);
+          
         }
         else
         {
@@ -77,7 +83,8 @@ class battleCListener implements Runnable {
     }
     catch(Exception e)
     {
-      System.out.println("Whoopsies.");
+      System.out.println("Connection terminated.");
+      System.exit(0);
     }
   }
 
