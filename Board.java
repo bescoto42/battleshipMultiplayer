@@ -15,6 +15,8 @@ class Board extends JFrame implements ActionListener
   //user and enemy boards
   JLabel uScreen[] = new JLabel[100];
   JLabel eScreen[] = new JLabel[100];
+  ImageIcon t;
+  JLabel title;
 
   Board()
   {
@@ -51,10 +53,17 @@ class Board extends JFrame implements ActionListener
 
     //to add the gameboard
     JLabel label = new JLabel(new ImageIcon("board.png"));
+    t = new ImageIcon("title.png");
+    title = new JLabel(t);
+    title.setBounds(0,0,1090,60);
+    f.add(title);
 
     //for loop to set explosions up
-    iex = new ImageIcon("explosion.gif");
-    //jex = new JLabel(iex);
+    iex = new ImageIcon("lol.png");
+    // jex = new JLabel(iex);
+    // jex.setBounds(35,95,40,40);
+    // f.add(jex);
+    // jex.setVisible(true);
 
     x = 35; //x coordinate of first box
     y = 95; //y coordinate of first box
@@ -85,7 +94,6 @@ class Board extends JFrame implements ActionListener
         q = 0;
       }
     }
-
     f.add(label);
     f.setSize(1100,700);
     f.setVisible(true);
