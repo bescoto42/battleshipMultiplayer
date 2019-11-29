@@ -119,8 +119,8 @@ class Game implements Runnable {
             break;
           }
           //send the same message to both players
-          myOutput.writeBytes(user + ": " + x + "\n" + nemesis + "'s turn.\n");
-          enemyOutput.writeBytes(user + ": " + x + "\n" + nemesis + "'s turn.\n");
+          myOutput.writeBytes(user + ": " + x + "\n");
+          enemyOutput.writeBytes(user + ": " + x + "\n");
 
         }
         else
