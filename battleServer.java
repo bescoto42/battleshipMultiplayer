@@ -36,11 +36,11 @@ public class battleServer{
       sock2 = ss.accept();
 
       //game class takes user's socket, enemy's socket, and designation as input
-      Game handler1 = new Game(sock1, sock2,'1');
+      Game handler1 = new Game(sock1, sock2,"1");
       Thread a = new Thread(handler1);
       a.start();
 
-      Game handler2 = new Game(sock2, sock1,'2');
+      Game handler2 = new Game(sock2, sock1,"2");
       Thread b = new Thread(handler2);
       b.start();
 
@@ -66,22 +66,22 @@ public class battleServer{
 class Game implements Runnable {
   private Socket self = null;
   private Socket enemy = null;
-  private char user;
-  private char nemesis;
+  private String user,nemesis;
+  String[] eships = new String[17];
 
-  Game(Socket s, Socket e, char w)
+  Game(Socket s, Socket e, String w)
   {
     self = s;
     enemy = e;
     user = w;
 
-    if(user=='1')
+    if(user=="1")
     {
-      nemesis='2';
+      nemesis="2";
     }
-    else if(user=='2')
+    else if(user=="2")
     {
-      nemesis='1';
+      nemesis="1";
     }
     else
     {
@@ -103,24 +103,29 @@ class Game implements Runnable {
       DataOutputStream myOutput = new DataOutputStream(self.getOutputStream());
       //user's input
       String x;
+      int index=0;
 
+      myOutput.writeBytes(user + "\n");
       //welcome message
-      myOutput.writeBytes("Welcome to Battleship, player " + user + ".\nType exit to end session.\n");
+      myOutput.writeBytes("Welcome to Battleship, player " + user + ".\nType ! to end session.\n");
 
       while(true)
       {
         x = myInput.readLine();
         if(x != null)
         {
-          if(x.equals("0"))
+          if(x.equals("!"))
           {
             enemy.close();
             self.close();
             break;
           }
+
           //send the same message to both players
-          myOutput.writeBytes(user + ": " + x + "\n");
-          enemyOutput.writeBytes(user + ": " + x + "\n");
+          myOutput.writeBytes("| " + user + ": " + x + "\n");
+          enemyOutput.writeBytes("| " + user + ": " + x + "\n");
+
+
 
         }
         else
