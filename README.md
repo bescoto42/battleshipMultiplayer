@@ -3,7 +3,7 @@ a multiplayer game of battleship
 
 players will be able to connect to a server and play against each other
 
-the board has been merged into the client file. originally, the plan was to take input through the GUI, but this proved to be an issue because of multithreading. the GUI couldn't be both a thread and an ActionListener (which it neededto be in order to use buttons) so inputs will be taken from the command line and shown on the user interface. the only things that need to be implemented is setting up the ships, transmitting those coordinates, and implementing some error checking and exit conditions.
+the board has been merged into the client file. originally, the plan was to take input through the GUI, but this proved to be an issue because of multithreading. the GUI couldn't be both a thread and an ActionListener (which it needed to be in order to use buttons) so inputs will be taken from the command line and shown on the user interface. the only things that need to be implemented is setting up the ships with error checking and exit conditions.
 
 - to run, compile all the files in java using _javac *.java_
 - the server should be started first with _java battleServer_
