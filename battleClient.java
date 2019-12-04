@@ -1,3 +1,7 @@
+/**
+client accepts the connection first, then calls for a function to set up player ships. after that, a while loop takes all input until the user quits.
+**/
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
