@@ -1,8 +1,8 @@
 /**
-server class connects two players and then launches threads with game class
-game class will handle all the gameplay
-game class recieves the player's input and then outputs it to both players
-currently, the biggest issue is that users can go more than once however that should be fixed when gameplay is implemented
+- server class connects two players and then launches threads with game class
+- game class handles all the gameplay
+  - receives input from one user and sends it to both users
+  - messages are analyzed by client, server just sends them
 **/
 
 import java.io.BufferedReader;
@@ -17,7 +17,7 @@ public class battleServer{
   private Socket sock1 = null;
   private Socket sock2 = null;
 
-  //constructor
+  // constructor
   public battleServer()
   {
 
@@ -25,17 +25,17 @@ public class battleServer{
 
   private void connectPlayers()
   {
-    //wait for request from client
+    // wait for request from client
     try
     {
       System.out.println("Waiting on port 6969");
       ServerSocket ss = new ServerSocket(6969);
 
-      //allow two players to connect
+      // allow two players to connect
       sock1 = ss.accept();
       sock2 = ss.accept();
 
-      //game class takes user's socket, enemy's socket, and designation as input
+      // game class takes user's socket, enemy's socket, and designation as input
       Game handler1 = new Game(sock1, sock2,"1");
       Thread a = new Thread(handler1);
       a.start();
@@ -44,7 +44,7 @@ public class battleServer{
       Thread b = new Thread(handler2);
       b.start();
 
-      //once threads are done, close the connection
+      // once threads are done, close the connection
       ss.close();
     }
     catch(IOException e)
@@ -56,7 +56,7 @@ public class battleServer{
 
   public static void main(String[] args)
   {
-    //all main does is launch the server
+    // all main does is launch the server
     battleServer k = new battleServer();
     k.connectPlayers();
   }
@@ -67,7 +67,6 @@ class Game implements Runnable {
   private Socket self = null;
   private Socket enemy = null;
   private String user,nemesis;
-  String[] eships = new String[17];
 
   Game(Socket s, Socket e, String w)
   {
@@ -95,18 +94,18 @@ class Game implements Runnable {
     {
       System.out.println("Player " + user + " has connected.");
 
-      //get the input from the user
+      // get the input from the user
       BufferedReader myInput = new BufferedReader(new InputStreamReader(self.getInputStream()));
-      //send input to enemy
+      // send input to enemy
       DataOutputStream enemyOutput = new DataOutputStream(enemy.getOutputStream());
-      //send input back to the user
+      // send input back to the user
       DataOutputStream myOutput = new DataOutputStream(self.getOutputStream());
-      //user's input
-      String x;
-      int index=0;
 
+      String x; // user's input
+
+      // first message is which player the user is
       myOutput.writeBytes(user + "\n");
-      //welcome message
+      // welcome message
       myOutput.writeBytes("Welcome to Battleship, player " + user + ".\nType ! to end session.\n");
 
       while(true)
@@ -115,13 +114,13 @@ class Game implements Runnable {
         if(x != null)
         {
           if(x.equals("!"))
-          {
+          { // connection also closes automatically if user exits the GUI
             enemy.close();
             self.close();
             break;
           }
 
-          //send the same message to both players
+          // send the same message to both players
           myOutput.writeBytes("| " + user + ": " + x + "\n");
           enemyOutput.writeBytes("| " + user + ": " + x + "\n");
 
@@ -136,7 +135,7 @@ class Game implements Runnable {
     }
     catch(Exception e)
     {
-      //once one user disconnects, server closes, disconnecting the other player
+      // once one user disconnects, server closes, disconnecting the other player
       System.out.println("Player " + user + " disconnected.");
       System.exit(0);
 

@@ -28,7 +28,6 @@ public class battleClient {
         DataOutputStream sendOut = new DataOutputStream(cs.getOutputStream());
 
         System.out.println("Let's go ladies.");
-        int temp = 0;//find some way to signal that ships are ready to send
 
         Board t1 = new Board();
         t1.setShips();
@@ -38,36 +37,72 @@ public class battleClient {
         String data;
 
         Scanner keyboard = new Scanner(System.in);
-        //get input from user and send it out
+        // get input from user and send it out
+        // some basic error checking is implemented
+
         while(true)
         {
           data = keyboard.nextLine();
+          if(t1.getVictory())
+          {
+            System.out.println("winner");
+            sendOut.writeBytes("VICTORY!" + "\n");
+          }
+
+
+          if(data.toUpperCase().contains("TRY"))
+          {
+            if(t1.startGame()==false)
+            {
+              System.out.println("Wait!");
+              continue;
+            }
+            if(t1.isYourTurn())
+            {
+              int check;
+              try
+              {
+                check = t1.transform(data.substring(4));
+              }
+              catch(StringIndexOutOfBoundsException e)
+              {
+                System.out.println("Error!");
+                continue;
+              }
+
+              if(check < 0)
+              {
+                System.out.println("Invalid coordinate!");
+                continue;
+              }
+            }
+            else
+            {
+              System.out.println("Wait your turn!");
+              continue;
+            }
+          }
           //exit condition
           if(data.charAt(0)=='!')
           {
             sendOut.writeBytes("!");
             System.exit(0);
           }
-
-          if(data.equals("send ships"))
+          if(data.equals("send"))
           {
             for(int i=0;i<17;i++)
             {
-              //System.out.println(t1.giveShips(i) + "\n");
               sendOut.writeBytes(t1.giveShips(i) + "\n");
-
             }
           }
           else
           {
             sendOut.writeBytes(data + "\n");
           }
-
         }
       }
       catch (IOException e)
       {
-        System.out.println("client line 80");
         System.out.println(e.getMessage());
       }
     }
@@ -76,49 +111,92 @@ public class battleClient {
 
 class Board
 {
-  //variables from GUI
+  //variables for GUI
   JFrame f;//the window
-  JLabel bg,instructions;
-  JTextArea errormsg;
+  JLabel bg; //the background
+  JTextArea errormsg,instructions;
 
-  ImageIcon miss;//no ship was hit
-  ImageIcon hit; //a ship was hit
+  //icons
+  ImageIcon miss,hit,ship;
 
   //user and enemy boards
   JLabel uScreen[] = new JLabel[100];
   JLabel eScreen[] = new JLabel[100];
+
   //title image
   ImageIcon t;
   JLabel title;
 
+  ImageIcon finished;
+  JLabel gameDone;
+
+  //player 1/2 icons
+  ImageIcon p1,p2;
+  JLabel pIcon;
+
+  //x & y are used to have the offset be the same for objects
   int x, y;
+  //used to write two lines in text area
   Boolean newLine;
 
+  //coordinates for user and enemy ships
   int uShips[] = new int[17];
   int eShips[] = new int[17];
+
+  // player 1/2 assignments
   String player, enemy;
+
+  // function is called multiple times so index is called outside of it
   int eShipsindx;
+
+  //to keep input organized
+  Boolean yourTurn;
+
+  //to check if game is over
+  int hitCount;
 
   Board()
   {
     f=new JFrame("Battleship");
     bg = new JLabel(new ImageIcon("board.png"));
-    bg.setVisible(true);//set false
+    bg.setVisible(true);
+
+    instructions = new JTextArea("COMMANDS:\n| ! - exit game\n| try b10 - shoot");
+    instructions.setFont(new Font("Helvetica Neue", Font.PLAIN, 14));
+    instructions.setBounds(850,600,300,100);
+    instructions.setEditable(false);
+    f.add(instructions);
 
     t = new ImageIcon("title.png");
     title = new JLabel(t);
     title.setBounds(0,0,1090,60);
     f.add(title);
 
+    p1 = new ImageIcon("player1.png");
+    pIcon = new JLabel(p1);
+    // pIcon.setBounds(850,600,300,50);
+    pIcon.setBounds(30,600,300,50);
+    pIcon.setVisible(false);
+    f.add(pIcon);
+
+    finished = new ImageIcon("gameOver.png");
+    gameDone = new JLabel(finished);
+    gameDone.setBounds(300,200,500,300);
+    gameDone.setVisible(false);
+    f.add(gameDone);
+
     errormsg = new JTextArea("Welcome to the game.",3,20);
-    errormsg.setBounds(30,600,500,100);
+    // errormsg.setBounds(30,600,500,100);
+    errormsg.setBounds(350,600,500,100);
     errormsg.setFont(new Font("Helvetica Neue", Font.PLAIN, 14));
     errormsg.setEditable(false);
     errormsg.setVisible(true);
     f.add(errormsg);
 
-    //for loop to set explosions up
-    miss = new ImageIcon("lol.png");
+    //for loop sets icons
+    miss = new ImageIcon("miss.png");
+    hit = new ImageIcon("hit.png");
+    ship = new ImageIcon("ship.png");
 
     x = 35; //x coordinate of first box
     y = 95; //y coordinate of first box
@@ -144,7 +222,6 @@ class Board
 
       if(q==10) // new row
       {
-        //System.out.print(i);
         x = 35;
         y = y + 50;
         q = 0;
@@ -160,6 +237,8 @@ class Board
 
     newLine= true;
     eShipsindx=0;
+    yourTurn = false;
+    hitCount = 0;
 
     f.add(bg);
     f.setSize(1100,700);
@@ -167,6 +246,20 @@ class Board
     f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 
+  }
+
+  public Boolean startGame()
+  {
+    if(eShips[16]==-5)
+    {
+      return false;
+    }
+    return true;
+  }
+
+  public void gameOver()
+  {
+    gameDone.setVisible(true);
   }
 
   public void setMessage(String s)
@@ -183,15 +276,59 @@ class Board
       errormsg.setText(s);
       newLine= true;
     }
+    int a;
 
-    // int val = transform(s.substring(3));
-    // System.out.println("val :" + val);
+    s = s.toUpperCase();
+    if(s.contains("TRY"))
+    {
+      a = s.indexOf('Y') + 2;
+      a = transform(s.substring(a));
+    }
+    else
+    {
+      return;
+    }
+    if(s.contains(enemy + ":"))
+    {
+      yourTurn = true;
+      for(int i = 0; i< 17;i++)
+      {
+        if(a==uShips[i])
+        {
+          uScreen[a].setIcon(hit);
+        }
+      }
+      uScreen[a].setVisible(true);
+    }
+    else if(s.contains(player + ":"))
+    {
+      yourTurn = false;
+      for(int i = 0; i < 17; i++)
+      {
+        if(a==eShips[i])
+        {
+          System.out.println("hit!");
+          hitCount++;
+        }
+      }
+      eScreen[a].setVisible(true);
+    }
+  }
+
+  public boolean getVictory()
+  {
+    return hitCount>=17;
   }
 
   public int transform(String f)
   {
     f = f.toUpperCase();
-    System.out.println("f: " + f);
+
+    if(f.length() > 3)
+    {
+      return -1;
+    }
+
     int a = 0;
     if(f.charAt(0)=='B')//starts at B because A column is zero
     {
@@ -238,6 +375,10 @@ class Board
 
     if(f.length()==3)
     {
+      if(f.charAt(2)!='0')
+      {
+        return -1;
+      }
       b = 9;
     }
     else
@@ -294,23 +435,32 @@ class Board
     return false;
   }
 
-  public void setPlayer(String p)
+public Boolean isYourTurn()
+  {
+    return yourTurn;
+  }
+
+public void setPlayer(String p)
   {
     player = p;
     if(p.equals("1"))
     {
       enemy="2";
+      yourTurn=true;
 
     }
     else
     {
       enemy="1";
+      p2 = new ImageIcon("player2.png");
+      pIcon.setIcon(p2);
     }
+    pIcon.setVisible(true);
     setMessage("player: " + player + " enemy: " + enemy);
 
   }
 
-  public void setShips()
+public void setShips()
   {
     // /**
     // steps for placing ships
@@ -322,100 +472,240 @@ class Board
     //   6. show user what coordinates have already been inputted
     //   7. when everything is set, place ships on board
     //   **/
-    // Scanner keyboard = new Scanner(System.in);
-    // String data,s1,s2,s3,s4,s5;
-    // int indx = 0;//not a for loop bc we have to account for errors which might cause more loops
-    // int length,i1,i2,i3,i4,i5;
-    // while(true)
-    // {
-    //   if(indx>16)
-    //   {
-    //     break;
-    //   }
-    //   switch(indx)
-    //   {
-    //     case 0:
-    //       System.out.println("Enter comma separated coordinates for a ship of size two:\nEx: F4,F5\n— ");
-    //       data = keyboard.nextLine();
-    //       length=data.length();
-    //       if(data.charAt(2)==',')
-    //       {
-    //         s1=data.substring(0,1);
-    //         s2=data.substring(3,length-1);
-    //       }
-    //       else if(data.charAt(3)==',')
-    //       {
-    //         s1=data.substring(0,2);
-    //         s2=data.substring(4,length-1);
-    //       }
-    //       i1 = transform(s1);
-    //       i2 = transform(s2);
-    //
-    //       if(i1 < 0 || i2 < 0 ||failedChecksum(i1,i2)) //not continuous
-    //       {
-    //         System.out.println("Incorrect input.");
-    //         break;
-    //       }
-    //       uShips[indx] = i1;
-    //       indx++;
-    //       uShips[indx] = i2;
-    //       indx++;
-    //   case 2:
-    //     System.out.println("Enter comma separated coordinates for a ship of size three:\nEx: D10,E10,F10\n— ");
-    //
-    //
-    //   }
-    //   System.out.println("Place a ship one coordinate at a time, ex B6:");
-    //   data = keyboard.nextLine(); //A1
-    //   val = transform(data);
-    //   if(val < 0)
-    //   {
-    //     System.out.println("Incorrect coordinate!");
-    //   }
-    //   else
-    //   {
-    //     uShips[indx] = val;
-    //     indx++;
-    //
-    //   }
-    // }
-    //
-    // // for(17)
-    // // {
-    // //   set uships
-    // // }
+    Scanner keyboard = new Scanner(System.in);
+    String prompt[] = {"two","three","four","five"};
 
-    //temporarily, we're going to assign ships to test function
-    uShips[0]=0;
-    uShips[1]=10;
-    uShips[2]=1;
-    uShips[3]=11;
-    uShips[4]=21;
-    uShips[5]=42;
-    uShips[6]=43;
-    uShips[7]=44;
-    uShips[8]=93;
-    uShips[9]=94;
-    uShips[10]=95;
-    uShips[11]=96;
-    uShips[12]=48;
-    uShips[13]=58;
-    uShips[14]=68;
-    uShips[15]=78;
-    uShips[16]=88;
+    Boolean roundone = true;
+    String data;
+    String s1 = "";
+    String s2 = "";
+    String s3 = "";
+    String s4 = "";
+    String s5 = "";
+    String t1 = "";
+    String t2 = "";
+    String t3 = "";
+    // String t4 = "";
+    int v1 = 0;
+    int v2 = 0;
+    int v3 = 0;
+    int v4 = 0;
+    int v5 = 0;
 
-    hit = new ImageIcon("sad.png");
+    int index = 0;
+    int temp;
 
-    int j;
-    for(int i=0;i<17;i++)
+    System.out.println("Ex: a5,a6,a7");
+
+    while(index < 4)
     {
-      j=uShips[i];
-      uScreen[j].setIcon(hit);
-      uScreen[j].setVisible(true);
-    }
-    // System.out.println("user ships set");
+      System.out.println("Place a ship of size " + prompt[index]);
+      data=keyboard.nextLine();
+
+      switch (index)
+      {
+        case 0:
+          try
+          {
+            s1 = data.substring(0,data.indexOf(','));
+            s2 = data.substring(data.indexOf(',')+1);
+          }
+          catch(StringIndexOutOfBoundsException s)
+          {
+            System.out.println("Bad input!");
+            break;
+          }
+          v1 = transform(s1);
+          v2 = transform(s2);
+          if(v1 < 0 || v2 < 0 || failedChecksum(v1,v2))
+          {
+            System.out.println("Invalid coordinates!!");
+            break;
+          }
+          index++;
+          System.out.println("\t\t| " + s1.toUpperCase() + "," + s2.toUpperCase() + " |");
+          uShips[0] = v1;
+          uShips[1] = v2;
+          break;
+
+        case 1:
+          try
+        {
+          temp = data.indexOf(',');
+          s1 = data.substring(0,temp);
+          t1 = data.substring(temp+1);
+          temp = t1.indexOf(',');
+          s2 = t1.substring(0,temp);
+          s3 = t1.substring(temp+1);
+        }
+        catch(StringIndexOutOfBoundsException s)
+        {
+          System.out.println("Bad input!");
+          break;
+        }
+          v1 = transform(s1);
+          v2 = transform(s2);
+          v3 = transform(s3);
+
+          if(v1 < 0 || v2 < 0 || failedChecksum(v1,v2) || failedChecksum(v2,v3))
+          {
+            System.out.println("Invalid coordinates!");
+            break;
+          }
+          else if(shipsDuplicate(v1)||shipsDuplicate(v2)||shipsDuplicate(v3))
+          {
+            System.out.println("Error - overlapping ships");
+            break;
+          }
+          if(roundone)
+          {
+            uShips[2] = v1;
+            uShips[3] = v2;
+            uShips[4] = v3;
+            roundone = false;
+          }
+          else
+          {
+            uShips[5] = v1;
+            uShips[6] = v2;
+            uShips[7] = v3;
+            index++;
+          }
+          System.out.println("\t\t| " + s1.toUpperCase() + "," + s2.toUpperCase() +  "," + s3.toUpperCase() + " |");
+          break;
+        case 2:
+          try
+          {
+            temp = data.indexOf(',');
+            s1 = data.substring(0,temp);
+            t1 = data.substring(temp+1);
+            temp = t1.indexOf(',');
+            s2 = t1.substring(0,temp);
+            t2 = t1.substring(temp+1);
+            temp = t2.indexOf(',');
+            s3 = t2.substring(0,temp);
+            s4 = t2.substring(temp+1);
+          }
+          catch(StringIndexOutOfBoundsException s)
+          {
+            System.out.println("Bad input!");
+            break;
+          }
+
+          v1 = transform(s1);
+          v2 = transform(s2);
+          v3 = transform(s3);
+          v4 = transform(s4);
+
+          if(v1 < 0 || v2 < 0 || v3 < 0 || v4 < 0)
+          {
+            System.out.println("Incorrect coordinates!");
+            break;
+          }
+          else if(failedChecksum(v1,v2)||failedChecksum(v2,v3)||failedChecksum(v3,v4))
+          {
+            System.out.println("Incorrect coordinates!!");
+            break;
+          }
+          else if(shipsDuplicate(v1)||shipsDuplicate(v2)||shipsDuplicate(v3)||shipsDuplicate(v4))
+          {
+            System.out.println("error - overlapping ships");
+            break;
+          }
+
+          uShips[8] = v1;
+          uShips[9] = v2;
+          uShips[10] = v3;
+          uShips[11] = v4;
+          index++;
+          System.out.print("\t\t| " + s1.toUpperCase() + "," + s2.toUpperCase() +  "," + s3.toUpperCase() + ",");
+          System.out.println(s4.toUpperCase() + " |");
+          break;
+
+        case 3:
+          try
+          {
+            temp = data.indexOf(',');
+            s1 = data.substring(0,temp);
+            t1 = data.substring(temp+1);
+            temp = t1.indexOf(',');
+            s2 = t1.substring(0,temp);
+            t2 = t1.substring(temp+1);
+            temp = t2.indexOf(',');
+            s3 = t2.substring(0,temp);
+            t3 = t2.substring(temp+1);
+            temp = t3.indexOf(',');
+            s4 = t3.substring(0,temp);
+            s5 = t3.substring(temp+1);
+          }
+          catch(StringIndexOutOfBoundsException s)
+          {
+            System.out.println("Bad input!");
+            break;
+          }
+
+          v1 = transform(s1);
+          v2 = transform(s2);
+          v3 = transform(s3);
+          v4 = transform(s4);
+          v5 = transform(s5);
+
+          if(v1 < 0 || v2 < 0 || v3 < 0 || v4 < 0 || v5 < 0)
+          {
+            System.out.println("Incorrect coordinates!");
+            break;
+          }
+          else if(failedChecksum(v1,v2)||failedChecksum(v2,v3)||failedChecksum(v3,v4)||failedChecksum(v4,v5))
+          {
+            System.out.println("Incorrect coordinates!");
+            break;
+          }
+          else if(shipsDuplicate(v1)||shipsDuplicate(v2)||shipsDuplicate(v3)||shipsDuplicate(v4)||shipsDuplicate(v5))
+          {
+            System.out.println("error - overlapping ships");
+            break;
+          }
+
+          uShips[12] = v1;
+          uShips[13] = v2;
+          uShips[14] = v3;
+          uShips[15] = v4;
+          uShips[16] = v5;
+          System.out.print("\t\t| " + s1.toUpperCase() + "," + s2.toUpperCase() +  "," + s3.toUpperCase() + ",");
+          System.out.println(s4.toUpperCase() + "," + s5.toUpperCase() + " |");
+          index++;
+
+
+        }
+    //temporarily, we're going to assign ships to test function
+    // uShips[0]=0;
+    // uShips[1]=10;
+    // uShips[2]=1;
+    // uShips[3]=11;
+    // uShips[4]=21;
+    // uShips[5]=42;
+    // uShips[6]=43;
+    // uShips[7]=44;
+    // uShips[8]=93;
+    // uShips[9]=94;
+    // uShips[10]=95;
+    // uShips[11]=96;
+    // uShips[12]=48;
+    // uShips[13]=58;
+    // uShips[14]=68;
+    // uShips[15]=78;
+    // uShips[16]=88;
 
   }
+  int j;
+  for(int i=0;i<17;i++)
+  {
+    j=uShips[i];
+    uScreen[j].setIcon(ship);
+    uScreen[j].setVisible(true);
+  }
+  System.out.println("Enter 'send' to start game.");
+}
 
 
   //called by sender/main client class
@@ -432,16 +722,17 @@ class Board
 
     if(temp.startsWith(player + "S"))
     {
-      // System.out.println("my ship");
+
       return;
     }
     temp = temp.substring(2);
-    // System.out.println(temp);
+
 
     int value = Integer.parseInt(temp);
 
+    eShips[eShipsindx]=value;
+    eShipsindx++;
     eScreen[value].setIcon(hit);
-    eScreen[value].setVisible(true);
   }
 }
 
@@ -470,6 +761,14 @@ class Listener implements Runnable {
         String serverText = fromServer.readLine();
         if (fromServer != null)
         {
+
+          if(serverText.contains("VICTORY!"))
+          {
+            b.setMessage("Restart program to play again");
+            b.gameOver();
+            continue;
+          }
+
           //first message the server sends is just the player assignment: "1"/"2"
           if(playerset==false)
           {
@@ -480,11 +779,9 @@ class Listener implements Runnable {
 
           if(serverText.startsWith("| 1: 1S")||serverText.startsWith("| 2: 2S"))
           {
-            //System.out.println("recieved: " + serverText);
             b.setEnemyShips(serverText);
             continue;
           }
-
 
           b.setMessage(serverText);
           System.out.println(serverText);
