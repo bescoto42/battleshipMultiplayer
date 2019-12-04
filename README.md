@@ -1,6 +1,6 @@
 Players can to connect to a server and play against each other.
 
-The original plan was to take input through the GUI, but this proved to be an issue because of multithreading. To run, clone the repo and compile all the files with the command _javac *.java_
+The original plan was to take input through the GUI, but this proved to be an issue because of multithreading. Input is instead taken through command line, and thoroughly error-checked. To run, clone the repo and compile all the files with the command _javac *.java_
 
 The server has to be launched first, this is done with the command _java battleServer_
 
