@@ -1,12 +1,11 @@
-# battleshipMultiplayer
-a multiplayer game of battleship
+Players can to connect to a server and play against each other.
 
-players will be able to connect to a server and play against each other
+The original plan was to take input through the GUI, but this proved to be an issue because of multithreading. To run, clone the repo and compile all the files with the command _javac *.java_
 
-the board has been merged into the client file. originally, the plan was to take input through the GUI, but this proved to be an issue because of multithreading. the GUI couldn't be both a thread and an ActionListener (which it needed to be in order to use buttons) so inputs will be taken from the command line and shown on the user interface. the only things that need to be implemented is setting up the ships with error checking and exit conditions.
+The server has to be launched first, this is done with the command _java battleServer_
 
-- to run, compile all the files in java using _javac *.java_
-- the server should be started first with _java battleServer_
-- the first client can be run in a different terminal with _java battleClient_ and the second client should also be run with the same command, in a different terminal. only two users are allowed to connect to a session.
+After the server has been launched, the clients can then be launched with the command _java battleClient_
 
-the function needed to get user coordinates and assign ships is still a work in progress, currently random values have been assigned for ships, but once the client is running, entering 'send ships' will transmit your ships to the enemy. for now, these values are the same for each player and are set to visible to error check any problems in sending coordinates.
+The first thing that happens when the client is launched is the user being asked to place their ships. The GUI appears, so they can look at it while making their selection. The confirmed coordinates are echoed back to the user, or a reason is given to refuse them. If player one finishes their selection first, they are blocked from sending coordinates until player two has set up their ships. Inversely, if player two finishes placing their ships first, they are blocked because player one goes first.
+
+Once the ships have been placed, the player has to enter "send" in order to start the game. Players will then take turns guessing. A player is blocked from trying to attack a coordinate out of turn. When one player has won the game, a Game Over screen appears for both players. The server and client will have to be started again in order for them to play another game.
